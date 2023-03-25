@@ -26,14 +26,41 @@ public class Exercise_2 {
     private static class VProg extends AbstractFunction3<Long,Integer,Integer,Integer> implements Serializable {
         @Override
         public Integer apply(Long vertexID, Integer vertexValue, Integer message) {
-            return null;
+            if (vertexValue == 0) { // A vertex
+                return 0;
+            } else if (vertexValue <= message) { // no change needed
+                return vertexValue;
+            } else { // update shortest path
+                return message;
+
+            }
         }
     }
 
     private static class sendMsg extends AbstractFunction1<EdgeTriplet<Integer,Integer>, Iterator<Tuple2<Object,Integer>>> implements Serializable {
         @Override
         public Iterator<Tuple2<Object, Integer>> apply(EdgeTriplet<Integer, Integer> triplet) {
-            return null;
+
+            Integer path_len = 0;
+            Tuple2<Object,Integer> sourceVertex = triplet.toTuple()._1();
+            Tuple2<Object,Integer> dstVertex = triplet.toTuple()._2();
+            //here get the attribute value from the tiplet
+
+            if(Integer.MAX_VALUE == sourceVertex._2){
+                path_len = Integer.MAX_VALUE;
+            } else{
+                path_len = triplet.attr + sourceVertex._2;
+            }
+
+            //source vertex + attr < destVertex
+            // swap the stuff in the iff condition
+            if (path_len < dstVertex._2) {   // source vertex value is smaller than dst vertex?
+                // propagate value
+                return JavaConverters.asScalaIteratorConverter(Arrays.asList(new Tuple2<Object,Integer>(triplet.dstId(),path_len)).iterator()).asScala();
+            } else {
+                // do nothing
+                return JavaConverters.asScalaIteratorConverter(new ArrayList<Tuple2<Object,Integer>>().iterator()).asScala();
+            }
         }
     }
 
@@ -54,6 +81,7 @@ public class Exercise_2 {
                 .put(6l, "F")
                 .build();
 
+        //already initiliazed for shortest path alg for node A
         List<Tuple2<Object,Integer>> vertices = Lists.newArrayList(
                 new Tuple2<Object,Integer>(1l,0),
                 new Tuple2<Object,Integer>(2l,Integer.MAX_VALUE),
@@ -83,6 +111,7 @@ public class Exercise_2 {
         ops.pregel(Integer.MAX_VALUE,
                 Integer.MAX_VALUE,
                 EdgeDirection.Out(),
+                //new sendMsg()
                 new VProg(),
                 new sendMsg(),
                 new merge(),
