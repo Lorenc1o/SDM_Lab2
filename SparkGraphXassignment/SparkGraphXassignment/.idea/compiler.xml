@@ -6,11 +6,10 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="SparkGraphXassignment" />
+        <module name="spark_graphs_II" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="spark_graphs_II" target="1.8" />
       <module name="SparkGraphXassignment" target="1.8" />
     </bytecodeTargetLevel>
   </component>
