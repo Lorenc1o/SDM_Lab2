@@ -26,11 +26,11 @@ public class Exercise_2 {
     private static class VProg extends AbstractFunction3<Long,Integer,Integer,Integer> implements Serializable {
         @Override
         public Integer apply(Long vertexID, Integer vertexValue, Integer message) {
-            if (vertexValue == 0) { // A vertex
+            if (vertexValue == 0) { // start vertex A
                 return 0;
-            } else if (vertexValue <= message) { // no change needed
+            } else if (vertexValue <= message) { // no change of vertex value needed
                 return vertexValue;
-            } else { // update shortest path
+            } else { // update vertex value
                 return message;
 
             }
@@ -44,17 +44,14 @@ public class Exercise_2 {
             Integer path_len = 0;
             Tuple2<Object,Integer> sourceVertex = triplet.toTuple()._1();
             Tuple2<Object,Integer> dstVertex = triplet.toTuple()._2();
-            //here get the attribute value from the tiplet
 
-            if(Integer.MAX_VALUE == sourceVertex._2){
+            if(Integer.MAX_VALUE == sourceVertex._2){ //source value has still infinity value
                 path_len = Integer.MAX_VALUE;
-            } else{
+            } else{ //calculate path cost
                 path_len = triplet.attr + sourceVertex._2;
             }
 
-            //source vertex + attr < destVertex
-            // swap the stuff in the iff condition
-            if (path_len < dstVertex._2) {   // source vertex value is smaller than dst vertex?
+            if (path_len < dstVertex._2) {   //shorter path found
                 // propagate value
                 return JavaConverters.asScalaIteratorConverter(Arrays.asList(new Tuple2<Object,Integer>(triplet.dstId(),path_len)).iterator()).asScala();
             } else {
@@ -117,7 +114,7 @@ public class Exercise_2 {
                 new merge(),
                 ClassTag$.MODULE$.apply(Integer.class))
             .vertices()
-            .toJavaRDD()
+            .toJavaRDD().sortBy(f -> ((Tuple2<Object, Integer>) f)._1, true, 0)
             .foreach(v -> {
                 Tuple2<Object,Integer> vertex = (Tuple2<Object,Integer>)v;
                 System.out.println("Minimum cost to get from "+labels.get(1l)+" to "+labels.get(vertex._1)+" is "+vertex._2);
