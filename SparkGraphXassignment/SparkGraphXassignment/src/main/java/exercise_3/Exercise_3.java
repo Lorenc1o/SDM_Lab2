@@ -2,13 +2,11 @@ package exercise_3;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import exercise_2.Exercise_2;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.graphx.*;
 import org.apache.spark.storage.StorageLevel;
 import scala.Tuple2;
-import scala.Tuple3;
 import scala.collection.Iterator;
 import scala.collection.JavaConverters;
 import scala.reflect.ClassTag$;
@@ -27,28 +25,31 @@ import java.util.HashMap;
 
 public class Exercise_3 {
 
-    // To store the parent of each vertex
-    static Map<Object, Object> parents = new HashMap<Object, Object>();
+    // Stores the predecessor of each vertex on the shortest path
+    static Map<Object, Object> predecessors = new HashMap<Object, Object>();
 
-    // function to recursively get the path till source
-    public static void get_recursive_path(Object vert, Map<Object, Object> parent_map, List<String> path, Map<Long, String> labels){
-        if (parent_map.get(vert)==(Object)(-1l)) {
+    // function to recursively get the path until the source vertex
+    public static void get_recursive_path(Object vert, Map<Object, Object> p_map, List<String> path, Map<Long, String> labels){
+        if (p_map.get(vert)==(Object)(-1l)) { //source vertex
             return;
         } else {
-            Object parent_vertex = parent_map.get(vert);
+            //get parent and add to path
+            Object parent_vertex = p_map.get(vert);
             path.add(labels.get(parent_vertex));
-            get_recursive_path(parent_vertex, parent_map, path, labels);
+            //call again with parent to get path to the parent
+            get_recursive_path(parent_vertex, p_map, path, labels);
         }
     }
 
 
-    // function to save the whole path in a list and return back
-    public static List<String> get_path(Object vertex, Map<Object, Object> parent_map, Map<Long, String> labels){
+    // get the shortest path as list
+    public static List<String> get_path(Object vertex, Map<Object, Object> p_map, Map<Long, String> labels){
         List<String> path = new ArrayList<>();
         path.add(labels.get(vertex));
-        get_recursive_path(vertex, parent_map, path, labels);
+        //get the shortest path
+        get_recursive_path(vertex, p_map, path, labels);
 
-        // Reverse the path list for correct output
+        // Reverse the path list (to get correct output order)
         for (int k = 0, j = path.size() - 1; k < j; k++)
         {
             path.add(k, path.remove(j));
@@ -56,15 +57,14 @@ public class Exercise_3 {
         return path;
     }
 
-
     private static class VProg extends AbstractFunction3<Long,Integer,Integer,Integer> implements Serializable {
         @Override
         public Integer apply(Long vertexID, Integer vertexValue, Integer message) {
-            if (vertexValue == 0) { // A vertex
+            if (vertexValue == 0) { // start vertex A
                 return 0;
-            } else if (vertexValue <= message) { // no change needed
+            } else if (vertexValue <= message) { // no change of vertex value needed
                 return vertexValue;
-            } else { // update shortest path
+            } else { // update vertex value
                 return message;
 
             }
@@ -78,19 +78,18 @@ public class Exercise_3 {
             Integer path_len = 0;
             Tuple2<Object,Integer> sourceVertex = triplet.toTuple()._1();
             Tuple2<Object,Integer> dstVertex = triplet.toTuple()._2();
-            //here get the attribute value from the tiplet
 
-            if(Integer.MAX_VALUE == sourceVertex._2){
+            if(Integer.MAX_VALUE == sourceVertex._2){ //source value has still infinity value
                 path_len = Integer.MAX_VALUE;
-            } else{
+            } else{ //calculate path cost
                 path_len = triplet.attr + sourceVertex._2;
             }
 
-            //source vertex + attr < destVertex
-            // swap the stuff in the iff condition
-            if (path_len < dstVertex._2) {   // source vertex value is smaller than dst vertex?
+
+            if (path_len < dstVertex._2) {  //shorter path found
+                // update the predecessor
+                predecessors.put(dstVertex._1, sourceVertex._1);
                 // propagate value
-                parents.put(dstVertex._1, sourceVertex._1);
                 return JavaConverters.asScalaIteratorConverter(Arrays.asList(new Tuple2<Object,Integer>(triplet.dstId(),path_len)).iterator()).asScala();
             } else {
                 // do nothing
@@ -135,9 +134,10 @@ public class Exercise_3 {
                 new Edge<Integer>(4l, 6l, 11) // D --> F (11)
         );
 
+        // initialize the predecessors (hash map size 6 for every vertice the id and -1 because we dont now the predecessor yet)
         for (Tuple2<Object,Integer> vertex_var :vertices){
             Object key = vertex_var._1();
-            parents.put(key, (Object)(-1l));
+            predecessors.put(key, (Object)(-1l));
         }
 
         JavaRDD<Tuple2<Object,Integer>> verticesRDD = ctx.parallelize(vertices);
@@ -151,7 +151,6 @@ public class Exercise_3 {
         ops.pregel(Integer.MAX_VALUE,
                         Integer.MAX_VALUE,
                         EdgeDirection.Out(),
-                        //new sendMsg()
                         new Exercise_3.VProg(),
                         new Exercise_3.sendMsg(),
                         new Exercise_3.merge(),
@@ -160,7 +159,8 @@ public class Exercise_3 {
                 .toJavaRDD().sortBy(f -> ((Tuple2<Object, Integer>) f)._1, true, 0)
                 .foreach(v -> {
                     Tuple2<Object,Integer> vertex = (Tuple2<Object,Integer>)v;
-                    List<String> path = get_path( vertex._1 , parents, labels);
+                    // get the shortest path
+                    List<String> path = get_path( vertex._1 , predecessors, labels);
                     System.out.println("Minimum path to get from "+labels.get(1l)+" to "+labels.get(vertex._1)+" is " + path + " with cost " +vertex._2);
                 });
     }
