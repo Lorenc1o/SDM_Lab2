@@ -28,7 +28,7 @@ public class Exercise_2 {
         public Integer apply(Long vertexID, Integer vertexValue, Integer message) {
             if (vertexValue == 0) { // start vertex A
                 return 0;
-            } else if (vertexValue <= message) { // no change of vertex value needed
+            } else if (vertexValue < message) { // no change of vertex value needed
                 return vertexValue;
             } else { // update vertex value
                 return message;
