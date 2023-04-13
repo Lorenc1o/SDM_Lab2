@@ -99,15 +99,11 @@ public class Exercise_4 {
 			gf.vertices().show();
 
 			Boolean converged = false;
-			int iter = 1;
-			int jump = 10;
-			List<Row> left10 = null;
-			List<Row> right10 = null;
-
+			int iter = 1, jump = 1;
+			List<Row> left10 = null, right10 = null;
 			while(!converged){
-				System.out.println("Iteration " + iter + "...");
+				System.out.println("Testing with " + iter +"...");
 				right10 = getTop10(gf, iter);
-
 				if (left10 != null && left10.equals(right10)) {
 					converged = true;
 				} else {
@@ -116,36 +112,8 @@ public class Exercise_4 {
 				iter+=jump;
 			}
 
-			int left;
-			if (iter >= 2*jump){
-				left = iter-2*jump+1; // Because it could be to the left
-			} else {
-				left = iter-jump;
-			}
-
-			left10 = getTop10(gf, left);
-			int right = iter;
-
-			while (right - left > 1) {
-				if(left == right-1){
-					left = right;
-				} else {
-					System.out.println("The ideal number of iterations is between " + left + " and " + right);
-					int midpoint = (left + right)/2; //this should be an integer
-					List<Row> middle10 = getTop10(gf,midpoint);
-
-					if(middle10.equals(left10)){
-						right = left;
-					} else if(middle10.equals(right10)){
-						right = midpoint;
-					} else {
-						left = midpoint;
-					}
-				}
-			}
-
-			System.out.println("The ideal number of iterations is " + (left) + " and the obtained ranking is:");
-			PageRank pagerank =  gf.pageRank().resetProbability(0.15).maxIter(left);
+			System.out.println("The ideal number of iterations is " + (iter-2) + " and the obtained ranking is:");
+			PageRank pagerank =  gf.pageRank().resetProbability(0.15).maxIter(iter-2);
 			GraphFrame rankedGraph = pagerank.run();
 			Dataset<Row> ranks = rankedGraph.vertices().orderBy(functions.col("pagerank").desc());
 			ranks.show(10);
